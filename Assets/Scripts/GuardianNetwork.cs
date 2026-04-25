@@ -8,24 +8,33 @@ using UnityEngine;
 
 public class GuardianNetwork : MonoBehaviour {
     private ClientWebSocket websocket;
-    public string roomId = "sala-demo-unity";
-    public string playerId = "Player-01";
     
-    private ChatManager chatManager;
+    [Header("Configuración de Red")]
+    public string roomId = "sala-demo";
+    public string playerId = "Player-Unity";
+    public string serverIp = "192.168.1.172";
+    public string serverPort = "8000";
+    
+    public ChatManager chatManager;
     private Queue<string> messageQueue = new Queue<string>();
 
     async void Start() {
-        chatManager = GetComponent<ChatManager>();
+        if (chatManager == null) chatManager = GetComponent<ChatManager>();
+        if (chatManager == null) chatManager = FindFirstObjectByType<ChatManager>();
+        
         playerId = "User_" + UnityEngine.Random.Range(100, 999);
         await Connect();
     }
 
     void Update() {
-        // Procesar mensajes en el hilo principal de Unity
         lock (messageQueue) {
             while (messageQueue.Count > 0) {
                 string msg = messageQueue.Dequeue();
-                chatManager.HandleNetworkMessage(msg);
+                if (chatManager != null) {
+                    chatManager.HandleNetworkMessage(msg);
+                } else {
+                    Debug.LogWarning("[Network] No hay ChatManager asignado.");
+                }
             }
         }
     }
@@ -33,12 +42,17 @@ public class GuardianNetwork : MonoBehaviour {
     async Task Connect() {
         websocket = new ClientWebSocket();
         try {
-            await websocket.ConnectAsync(new Uri("ws://localhost:8888/ws/game/" + roomId), CancellationToken.None);
+            string url = $"ws://{serverIp}:{serverPort}/ws/game/{roomId}";
+            Debug.Log("[Network] Conectando a: " + url);
+            await websocket.ConnectAsync(new Uri(url), CancellationToken.None);
+            
             var joinMessage = $"{{\"type\": \"join\", \"room\": \"{roomId}\", \"player_id\": \"{playerId}\", \"game_id\": \"demo\"}}";
             await SendRaw(joinMessage);
+            
+            Debug.Log("[Network] ¡Conectado con éxito a la Mac externa!");
             _ = ReceiveLoop();
         } catch (Exception e) {
-            Debug.LogError("[Network] Error: " + e.Message);
+            Debug.LogError("[Network] Error de conexión: " + e.Message);
         }
     }
 
@@ -48,8 +62,6 @@ public class GuardianNetwork : MonoBehaviour {
             while (websocket.State == WebSocketState.Open) {
                 var result = await websocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                
-                // Meter a la cola para procesar en Update()
                 lock (messageQueue) {
                     messageQueue.Enqueue(json);
                 }
@@ -66,5 +78,9 @@ public class GuardianNetwork : MonoBehaviour {
     private async Task SendRaw(string data) {
         var buffer = Encoding.UTF8.GetBytes(data);
         await websocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+    }
+
+    private void OnDestroy() {
+        if (websocket != null) websocket.Dispose();
     }
 }
