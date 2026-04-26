@@ -33,7 +33,27 @@ public class ChatManager : MonoBehaviour {
     string localPlayerId = "";
 
     void Start() {
+        Debug.Log("[Chat] Start() — inputField=" + (inputField != null) + " chatContent=" + (chatContent != null) + " network=" + (network != null));
         SetupLayoutGroup();
+
+        if (inputField != null) {
+            inputField.onSubmit.AddListener(text => {
+                Debug.Log("[Chat] onSubmit disparado: " + text);
+                SendChatMessage(text);
+                inputField.ActivateInputField();
+            });
+            inputField.onEndEdit.AddListener(text => {
+                Debug.Log("[Chat] onEndEdit disparado: " + text);
+            });
+        } else {
+            Debug.LogError("[Chat] inputField ES NULL — no se pueden enviar mensajes");
+        }
+
+        var canvas = GetComponent<ChatCanvas>() ?? FindFirstObjectByType<ChatCanvas>();
+        if (canvas != null && canvas.sendButton != null)
+            canvas.sendButton.onClick.AddListener(() => {
+                if (inputField != null) SendChatMessage(inputField.text);
+            });
     }
 
     void SetupLayoutGroup() {
@@ -57,9 +77,11 @@ public class ChatManager : MonoBehaviour {
         localPlayerId = id;
     }
 
-    public async void SendMessage(string text) {
-        if (string.IsNullOrEmpty(text)) return;
-        if (network != null) await network.SendChatMessage(text);
+    public async void SendChatMessage(string text) {
+        Debug.Log("[Chat] SendChatMessage llamado: '" + text + "'");
+        if (string.IsNullOrEmpty(text)) { Debug.LogWarning("[Chat] texto vacío, abortando"); return; }
+        if (network == null) { Debug.LogError("[Chat] network ES NULL"); return; }
+        await network.SendChatMessage(text);
         if (inputField != null) inputField.text = "";
     }
 
@@ -88,7 +110,8 @@ public class ChatManager : MonoBehaviour {
     }
 
     void SpawnBubble(string text, string from, bool isOwn, bool blocked) {
-        if (textPrefab == null || chatContent == null) return;
+        Debug.Log("[Chat] SpawnBubble: '" + text + "' from=" + from + " isOwn=" + isOwn);
+        if (chatContent == null) { Debug.LogError("[Chat] chatContent ES NULL"); return; }
 
         // Prefab root may already have TextMeshProUGUI (a Graphic) — can't add Image to same GO.
         // Create a fresh wrapper GO for the bubble instead.
@@ -98,7 +121,7 @@ public class ChatManager : MonoBehaviour {
         // --- Configuración del Fondo (Burbuja) ---
         var img = bubbleGO.AddComponent<Image>();
         img.color = blocked ? BubbleBlock : (isOwn ? BubbleOwn : BubbleOther);
-        img.type = Image.Type.Sliced;
+        img.type = Image.Type.Simple;
 
         // --- Layout de la burbuja ---
         // No HorizontalLayoutGroup needed — bubble is a simple vertical stack with padding.

@@ -85,18 +85,21 @@ public class GuardianNetwork : MonoBehaviour {
 
             Debug.Log("[Network] Conectando a: " + url);
             await websocket.ConnectAsync(new Uri(url), cts.Token);
+            Debug.Log("[Network] ConnectAsync OK — state=" + websocket.State);
 
             var join = new JoinPayload { room = roomId, player_id = playerId, game_id = gameId };
-            await SendRaw(JsonUtility.ToJson(join));
-
+            string joinJson = JsonUtility.ToJson(join);
+            Debug.Log("[Network] Enviando join: " + joinJson);
+            await SendRaw(joinJson);
             Debug.Log("[Network] ¡CONEXIÓN ESTABLECIDA!");
             _ = ReceiveLoop();
         } catch (Exception e) {
-            Debug.LogError("[Network] Error: " + e.Message);
+            Debug.LogError("[Network] Error en Connect: " + e.GetType().Name + " — " + e.Message);
         }
     }
 
     async Task ReceiveLoop() {
+        Debug.Log("[Network] ReceiveLoop iniciado");
         var buffer = new byte[1024 * 8];
         var ms = new MemoryStream();
         try {
