@@ -7,6 +7,7 @@ using System;
 public class NetMessage {
     public string type;
     public string from;
+    public string player_id; // Soporte para ambos formatos
     public string text;
     public bool blocked;
 }
@@ -21,6 +22,9 @@ public class ChatManager : MonoBehaviour {
     [Header("Referencias Red")]
     public GuardianNetwork network;
 
+    // Shared shadow material — created once, reused by all bubbles to avoid per-bubble leak.
+    Material shadowMaterial;
+
     // Colors
     static readonly Color32 BubbleOwn    = new Color32(37, 211, 102, 255);  // WhatsApp green
     static readonly Color32 BubbleOther  = new Color32(50,  50,  60, 230);  // dark slate
@@ -34,6 +38,15 @@ public class ChatManager : MonoBehaviour {
 
     void Start() {
         SetupLayoutGroup();
+
+        // Agregamos el "escuchador" para que al presionar Enter se envíe el mensaje
+        if (inputField != null) {
+            inputField.onSubmit.AddListener((text) => {
+                SendMessage(text);
+                // Devolvemos el foco al input para seguir escribiendo
+                inputField.ActivateInputField();
+            });
+        }
     }
 
     void SetupLayoutGroup() {
@@ -69,8 +82,10 @@ public class ChatManager : MonoBehaviour {
         try {
             NetMessage msg = JsonUtility.FromJson<NetMessage>(json);
             
-            // Si el servidor usa player_id en vez de from, lo corregimos
-            string sender = string.IsNullOrEmpty(msg.from) ? "Desconocido" : msg.from;
+            // Detectar el nombre del remitente (probando varios campos posibles)
+            string sender = msg.from;
+            if (string.IsNullOrEmpty(sender)) sender = msg.player_id;
+            if (string.IsNullOrEmpty(sender)) sender = "Desconocido";
 
             if (msg.type == "message") {
                 if (msg.blocked) {
@@ -88,12 +103,13 @@ public class ChatManager : MonoBehaviour {
     }
 
     void SpawnBubble(string text, string from, bool isOwn, bool blocked) {
-        if (textPrefab == null || chatContent == null) return;
+        if (chatContent == null) return;
 
         // Prefab root may already have TextMeshProUGUI (a Graphic) — can't add Image to same GO.
         // Create a fresh wrapper GO for the bubble instead.
         GameObject bubbleGO = new GameObject("Bubble_" + from, typeof(RectTransform));
         bubbleGO.transform.SetParent(chatContent, false);
+        Debug.Log("[Chat] Instanciando burbuja para: " + from + " | Texto: " + text);
 
         // --- Configuración del Fondo (Burbuja) ---
         var img = bubbleGO.AddComponent<Image>();
@@ -190,15 +206,24 @@ public class ChatManager : MonoBehaviour {
     }
 
     void ApplyShadow(TextMeshProUGUI tmp) {
-        tmp.fontSharedMaterial = new Material(tmp.fontSharedMaterial);
-        tmp.fontSharedMaterial.EnableKeyword("UNDERLAY_ON");
-        tmp.fontSharedMaterial.SetColor("_UnderlayColor", new Color(0, 0, 0, 0.5f));
-        tmp.fontSharedMaterial.SetFloat("_UnderlaySoftness", 0.1f);
+        if (shadowMaterial == null) {
+            shadowMaterial = new Material(tmp.fontSharedMaterial);
+            shadowMaterial.EnableKeyword("UNDERLAY_ON");
+            shadowMaterial.SetColor("_UnderlayColor", new Color(0, 0, 0, 0.5f));
+            shadowMaterial.SetFloat("_UnderlaySoftness", 0.1f);
+        }
+        tmp.fontSharedMaterial = shadowMaterial;
+    }
+
+    void OnDestroy() {
+        if (shadowMaterial != null) Destroy(shadowMaterial);
     }
 
     void ScrollToBottom() {
         if (scrollRect != null) {
             Canvas.ForceUpdateCanvases();
+            if (chatContent != null) 
+                LayoutRebuilder.ForceRebuildLayoutImmediate(chatContent as RectTransform);
             scrollRect.verticalNormalizedPosition = 0f;
         }
     }

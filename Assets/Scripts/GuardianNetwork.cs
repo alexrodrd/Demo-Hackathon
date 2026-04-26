@@ -43,6 +43,9 @@ public class GuardianNetwork : MonoBehaviour {
     private CancellationTokenSource cts;
     private const float HeartbeatInterval = 20f;
     private float heartbeatTimer = 0f;
+    private bool reconnecting = false;
+    private int reconnectAttempt = 0;
+    private const int MaxReconnectDelay = 30;
 
     async void Start() {
         if (chatManager == null) chatManager = GetComponent<ChatManager>();
@@ -69,6 +72,30 @@ public class GuardianNetwork : MonoBehaviour {
                 _ = SendRaw("{\"type\":\"ping\"}");
             }
         }
+
+        // Detectar desconexión y reconectar
+        if (!reconnecting && websocket != null &&
+            websocket.State != WebSocketState.Open &&
+            websocket.State != WebSocketState.Connecting) {
+            _ = Reconnect();
+        }
+    }
+
+    async Task Reconnect() {
+        if (reconnecting || cts.IsCancellationRequested) return;
+        reconnecting = true;
+
+        int delay = Mathf.Min(2 * (int)Mathf.Pow(2, reconnectAttempt), MaxReconnectDelay);
+        reconnectAttempt++;
+        Debug.LogWarning($"[Network] Desconectado. Reintentando en {delay}s (intento {reconnectAttempt})...");
+
+        await Task.Delay(delay * 1000, cts.Token).ContinueWith(_ => { });
+        if (cts.IsCancellationRequested) return;
+
+        websocket?.Dispose();
+        websocket = null;
+        reconnecting = false;
+        await Connect();
     }
 
     async Task Connect() {
@@ -86,6 +113,7 @@ public class GuardianNetwork : MonoBehaviour {
             Debug.Log("[Network] Conectando a: " + url);
             await websocket.ConnectAsync(new Uri(url), cts.Token);
 
+            reconnectAttempt = 0; // reset backoff on success
             var join = new JoinPayload { room = roomId, player_id = playerId, game_id = gameId };
             await SendRaw(JsonUtility.ToJson(join));
 
