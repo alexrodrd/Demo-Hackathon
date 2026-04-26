@@ -90,21 +90,15 @@ public class GuardianAudioModerator : MonoBehaviour
         }
     }
 
-    [Serializable]
-    class DGAlternative { public string transcript; }
-    [Serializable]
-    class DGChannel    { public DGAlternative[] alternatives; }
-    [Serializable]
-    class DGResults    { public DGChannel[] channels; }
-    [Serializable]
-    class DGResponse   { public DGResults results; }
-
     static string ParseDeepgram(string json)
     {
         // Deepgram: {"results":{"channels":[{"alternatives":[{"transcript":"..."}]}]}}
         try {
-            var r = JsonUtility.FromJson<DGResponse>(json);
-            return r?.results?.channels?[0]?.alternatives?[0]?.transcript?.Trim() ?? "";
+            int idx = json.IndexOf("\"transcript\":", StringComparison.Ordinal);
+            if (idx < 0) return "";
+            int start = json.IndexOf('"', idx + 13) + 1;
+            int end   = json.IndexOf('"', start);
+            return json.Substring(start, end - start).Trim();
         } catch { return ""; }
     }
 

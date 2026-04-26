@@ -23,9 +23,6 @@ public class MicToggleButton : MonoBehaviour
         if (button == null) button = GetComponentInParent<Button>();
         if (button == null) { Debug.LogError("[MicToggle] No se encontró Button. Asígnalo en el Inspector."); return; }
         if (audioModerator == null) audioModerator = FindFirstObjectByType<GuardianAudioModerator>();
-        // Strip any emoji from serialized scene values — LiberationSans SDF has no emoji glyphs.
-        textOn  = System.Text.RegularExpressions.Regex.Replace(textOn,  @"\p{Cs}|\p{So}", "").Trim();
-        textOff = System.Text.RegularExpressions.Regex.Replace(textOff, @"\p{Cs}|\p{So}", "").Trim();
         button.onClick.AddListener(Toggle);
         Refresh();
     }

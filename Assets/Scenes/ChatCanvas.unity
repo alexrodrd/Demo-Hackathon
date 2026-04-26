@@ -1852,8 +1852,8 @@ MonoBehaviour:
   audioModerator: {fileID: 253709514}
   button: {fileID: 2016133630}
   label: {fileID: 1946732650}
-  textOn: "MIC ACTIVO"
-  textOff: "SILENCIADO"
+  textOn: "\U0001F399 Mic ON"
+  textOff: "\U0001F507 Mic OFF"
   colorOn: {r: 0.14509805, g: 0.827451, b: 0.4, a: 1}
   colorOff: {r: 0.7058824, g: 0.11764706, b: 0.11764706, a: 1}
 --- !u!4 &1502185980
