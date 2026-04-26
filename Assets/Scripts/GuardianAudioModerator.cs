@@ -1,184 +1,139 @@
 using System;
 using System.Collections;
-using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace GuardianNode
+// EXPERIMENTAL — quitar: elimina este script del GO y listo, sin efectos secundarios.
+public class GuardianAudioModerator : MonoBehaviour
 {
-    [Serializable]
-    public class STTResponse
+    [Header("STT — Deepgram")]
+    public string sttApiKey = "";   // pegar key en Inspector, no en código
+    public int recordDurationSec = 5;
+
+    [Header("Referencias")]
+    public GuardianNetwork network;  // asignar en Inspector
+
+    [HideInInspector] public bool muted = false;
+
+    private string micName;
+    private AudioClip recordingClip;
+    private bool active = false;
+
+    void Start()
     {
-        public string transcript;
+        if (string.IsNullOrEmpty(sttApiKey)) {
+            Debug.LogWarning("[Audio] sttApiKey vacío — módulo desactivado.");
+            return;
+        }
+        if (Microphone.devices.Length == 0) {
+            Debug.LogError("[Audio] Sin micrófono detectado.");
+            return;
+        }
+        if (network == null) network = FindFirstObjectByType<GuardianNetwork>();
+        micName = Microphone.devices[0];
+        active = true;
+        Debug.Log($"[Audio] Usando micrófono: {micName}");
+        StartRecording();
     }
 
-    [RequireComponent(typeof(GuardianSDK))]
-    public class GuardianAudioModerator : MonoBehaviour
+    void StartRecording()
     {
-        [Header("STT Configuration (ej. Deepgram)")]
-        public string sttEndpoint = "https://api.deepgram.com/v1/listen";
-        public string sttApiKey = "TU_DEEPGRAM_API_KEY";
+        if (!active) return;
+        recordingClip = Microphone.Start(micName, false, recordDurationSec, 16000);
+        StartCoroutine(ProcessAfterDelay());
+    }
 
-        [Header("Audio Settings")]
-        public int recordDurationSec = 5;
-        private string micName;
-        private AudioClip recordingClip;
+    IEnumerator ProcessAfterDelay()
+    {
+        yield return new WaitForSeconds(recordDurationSec);
+        Microphone.End(micName);
 
-        private GuardianSDK guardian;
-        private string currentPlayerId = "PlayerVoice_123";
+        byte[] wav = WavUtility.FromAudioClip(recordingClip);
+        if (!muted && wav != null && wav.Length > 44)
+            _ = TranscribeAsync(wav);
 
-        void Start()
-        {
-            guardian = GetComponent<GuardianSDK>();
-            
-            // Iniciar micrófono predeterminado
-            if (Microphone.devices.Length > 0)
-            {
-                micName = Microphone.devices[0];
-                Debug.Log($"[Guardian Audio] Usando micrófono: {micName}");
-                StartRecordingChunk();
-            }
-            else
-            {
-                Debug.LogError("[Guardian Audio] No se detectó ningún micrófono.");
-            }
-        }
+        StartRecording();
+    }
 
-        private void StartRecordingChunk()
-        {
-            // Graba un fragmento (chunk) de audio
-            recordingClip = Microphone.Start(micName, false, recordDurationSec, 16000);
-            StartCoroutine(ProcessChunkAfterDelay());
-        }
+    async Task TranscribeAsync(byte[] wav)
+    {
+        string url = "https://api.deepgram.com/v1/listen?model=nova-2&language=es";
+        var tcs = new System.Threading.Tasks.TaskCompletionSource<string>();
 
-        private IEnumerator ProcessChunkAfterDelay()
-        {
-            // Esperar a que termine de grabar el fragmento
-            yield return new WaitForSeconds(recordDurationSec);
-            Microphone.End(micName);
+        StartCoroutine(PostWav(url, wav, tcs));
+        string json = await tcs.Task;
+        if (json == null) return;
 
-            // 1. Obtener el .WAV del audio
-            byte[] audioBytes = WavUtility.FromAudioClip(recordingClip);
+        string transcript = ParseDeepgram(json);
+        if (string.IsNullOrWhiteSpace(transcript)) return;
 
-            if (audioBytes != null && audioBytes.Length > 0)
-            {
-                // 2. Enviar a Speech-to-Text (Transcribir)
-                yield return StartCoroutine(TranscribeAudioAndModerate(audioBytes));
-            }
+        Debug.Log($"[Audio] Transcript: {transcript}");
+        if (network != null)
+            await network.SendAudioTranscript(transcript);
+    }
 
-            // Repetir el ciclo (grabar el siguiente fragmento)
-            StartRecordingChunk();
-        }
+    IEnumerator PostWav(string url, byte[] wav, System.Threading.Tasks.TaskCompletionSource<string> tcs)
+    {
+        using var req = new UnityWebRequest(url, "POST");
+        req.uploadHandler   = new UploadHandlerRaw(wav);
+        req.downloadHandler = new DownloadHandlerBuffer();
+        req.SetRequestHeader("Content-Type", "audio/wav");
+        req.SetRequestHeader("Authorization", $"Token {sttApiKey}");
+        yield return req.SendWebRequest();
 
-        private IEnumerator TranscribeAudioAndModerate(byte[] audioBytes)
-        {
-            Debug.Log("[Guardian Audio] Enviando chunk de audio a Speech-to-Text...");
-
-            using (UnityWebRequest request = new UnityWebRequest(sttEndpoint, "POST"))
-            {
-                request.uploadHandler = new UploadHandlerRaw(audioBytes);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "audio/wav");
-                request.SetRequestHeader("Authorization", $"Token {sttApiKey}");
-
-                yield return request.SendWebRequest();
-
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    Debug.LogWarning($"[Guardian Audio] Error STT: {request.error}");
-                }
-                else
-                {
-                    // 3. Analizar la respuesta del STT
-                    string jsonResult = request.downloadHandler.text;
-                    string transcript = ParseTranscript(jsonResult);
-
-                    if (!string.IsNullOrEmpty(transcript))
-                    {
-                        Debug.Log($"[Guardian Audio] Transcripción exitosa: '{transcript}'");
-
-                        // 4. EL PASO MÁGICO: Enviar el texto transcrito a GuardianNode para moderación
-                        guardian.AnalyzeMessage(currentPlayerId, transcript, callback: OnModerationResult);
-                    }
-                }
-            }
-        }
-
-        private string ParseTranscript(string jsonResult)
-        {
-            // Aquí extraes el texto dependiendo de qué API uses (Deepgram, Whisper, etc.)
-            // Este es un ejemplo genérico asumiendo un JSON simple {"transcript": "hola"}
-            try
-            {
-                STTResponse res = JsonUtility.FromJson<STTResponse>(jsonResult);
-                return res.transcript;
-            }
-            catch
-            {
-                // Regex fallback super simple por si el JSON es complejo
-                var match = System.Text.RegularExpressions.Regex.Match(jsonResult, @"""transcript"":\s*""([^""]+)""");
-                if (match.Success) return match.Groups[1].Value;
-                return "";
-            }
-        }
-
-        private void OnModerationResult(AnalysisResult result)
-        {
-            if (result.action == "block")
-            {
-                Debug.LogError($"[Guardian Audio] 🚨 MUTEANDO JUGADOR! Razón: {result.reason} (Riesgo: {result.level})");
-                // Aquí pondrías la lógica de tu juego para silenciar el Voice Chat (ej. Vivox.MutePlayer)
-            }
-            else if (result.action == "warn")
-            {
-                Debug.LogWarning($"[Guardian Audio] ⚠️ Advertencia de voz: {result.reason}");
-            }
-            else
-            {
-                Debug.Log("[Guardian Audio] ✅ Voz limpia.");
-            }
+        if (req.result != UnityWebRequest.Result.Success) {
+            Debug.LogWarning($"[Audio] STT error: {req.error}");
+            tcs.SetResult(null);
+        } else {
+            tcs.SetResult(req.downloadHandler.text);
         }
     }
 
-    /// <summary>
-    /// Utilidad simple para convertir AudioClip a formato WAV compatible con APIs REST.
-    /// </summary>
-    public static class WavUtility
+    static string ParseDeepgram(string json)
     {
-        public static byte[] FromAudioClip(AudioClip clip)
-        {
-            if (clip == null) return null;
-            var samples = new float[clip.samples];
-            clip.GetData(samples, 0);
-            Int16[] intData = new Int16[samples.Length];
-            Byte[] bytesData = new Byte[samples.Length * 2];
-            int rescaleFactor = 32767;
-            for (int i = 0; i < samples.Length; i++)
-            {
-                intData[i] = (short)(samples[i] * rescaleFactor);
-                Byte[] byteArr = new Byte[2];
-                byteArr = BitConverter.GetBytes(intData[i]);
-                byteArr.CopyTo(bytesData, i * 2);
-            }
-            
-            // Header WAV básico
-            var stream = new System.IO.MemoryStream();
-            var writer = new System.IO.BinaryWriter(stream);
-            writer.Write("RIFF".ToCharArray());
-            writer.Write(36 + bytesData.Length);
-            writer.Write("WAVE".ToCharArray());
-            writer.Write("fmt ".ToCharArray());
-            writer.Write(16);
-            writer.Write((short)1);
-            writer.Write((short)clip.channels);
-            writer.Write(clip.frequency);
-            writer.Write(clip.frequency * clip.channels * 2);
-            writer.Write((short)(clip.channels * 2));
-            writer.Write((short)16);
-            writer.Write("data".ToCharArray());
-            writer.Write(bytesData.Length);
-            writer.Write(bytesData);
-            return stream.ToArray();
+        // Deepgram: {"results":{"channels":[{"alternatives":[{"transcript":"..."}]}]}}
+        try {
+            int idx = json.IndexOf("\"transcript\":", StringComparison.Ordinal);
+            if (idx < 0) return "";
+            int start = json.IndexOf('"', idx + 13) + 1;
+            int end   = json.IndexOf('"', start);
+            return json.Substring(start, end - start).Trim();
+        } catch { return ""; }
+    }
+
+    void OnDestroy() { active = false; }
+}
+
+public static class WavUtility
+{
+    public static byte[] FromAudioClip(AudioClip clip)
+    {
+        if (clip == null) return null;
+        var samples = new float[clip.samples * clip.channels];
+        clip.GetData(samples, 0);
+
+        var stream = new System.IO.MemoryStream();
+        var w = new System.IO.BinaryWriter(stream);
+        int dataLen = samples.Length * 2;
+
+        w.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+        w.Write(36 + dataLen);
+        w.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
+        w.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
+        w.Write(16); w.Write((short)1);
+        w.Write((short)clip.channels);
+        w.Write(clip.frequency);
+        w.Write(clip.frequency * clip.channels * 2);
+        w.Write((short)(clip.channels * 2));
+        w.Write((short)16);
+        w.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+        w.Write(dataLen);
+
+        foreach (float s in samples) {
+            short v = (short)Mathf.Clamp(s * 32767f, -32768f, 32767f);
+            w.Write(v);
         }
+        return stream.ToArray();
     }
 }

@@ -64,6 +64,7 @@ public class ChatManager : MonoBehaviour {
     }
 
     public void HandleNetworkMessage(string json) {
+        if (json.Contains("\"pong\"") || json.Contains("\"ping\"")) return;
         Debug.Log("[Chat] Procesando JSON: " + json);
         try {
             NetMessage msg = JsonUtility.FromJson<NetMessage>(json);

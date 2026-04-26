@@ -122,6 +122,13 @@ public class GuardianNetwork : MonoBehaviour {
         await SendRaw(JsonUtility.ToJson(payload));
     }
 
+    // Envía transcript de voz — aparece en dashboard con tag [voz], no en Unity UI.
+    public async Task SendAudioTranscript(string transcript) {
+        if (websocket == null || websocket.State != WebSocketState.Open) return;
+        var payload = new TextPayload { text = $"[voz] {transcript}" };
+        await SendRaw(JsonUtility.ToJson(payload));
+    }
+
     private async Task SendRaw(string data) {
         var buffer = Encoding.UTF8.GetBytes(data);
         await websocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, cts.Token);
