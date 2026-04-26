@@ -9,7 +9,6 @@ namespace GuardianNode
     [Serializable]
     public class STTResponse
     {
-        // Esto asume una respuesta simplificada tipo Deepgram o Whisper
         public string transcript;
     }
 

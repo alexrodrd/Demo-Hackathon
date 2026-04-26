@@ -7,6 +7,4 @@ public class ChatCanvas : MonoBehaviour {
     public TMP_InputField inputField;
     public Button sendButton;
     public ScrollRect scrollView; 
-
-    // Aquí puedes añadir lógica para abrir/cerrar el chat con una tecla (ej. 'Enter')
 }

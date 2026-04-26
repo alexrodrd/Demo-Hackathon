@@ -412,8 +412,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c882fb8944da443cb1f6a9a39325a7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GuardianNetwork
-  roomId: sala-demo
+  protocol: wss
+  serverIp: astride-graded-paralegal.ngrok-free.dev
+  serverPort: 
+  roomId: sala-demo-unity
+  role: 
+  gameId: unity-demo
   playerId: Unity_Player
+  chatManager: {fileID: 546869134}
 --- !u!4 &339635584
 Transform:
   m_ObjectHideFlags: 0
@@ -455,17 +461,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 440630675}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 1646}
-  m_LocalScale: {x: 5, y: 5, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -96.99951}
+  m_LocalScale: {x: 0.49999997, y: 0.49999997, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 893532140}
-  m_Father: {fileID: 974174849}
+  m_Father: {fileID: 479637547}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -219, y: -740}
+  m_AnchoredPosition: {x: -21.899948, y: -74}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &440630677
@@ -619,6 +625,83 @@ MonoBehaviour:
   isAlert: 0
   m_InputValidator: {fileID: 0}
   m_ShouldActivateOnSelect: 1
+--- !u!1 &479637546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 479637547}
+  - component: {fileID: 479637549}
+  - component: {fileID: 479637548}
+  m_Layer: 5
+  m_Name: Panel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &479637547
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 479637546}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 1743}
+  m_LocalScale: {x: 10, y: 10, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 440630676}
+  - {fileID: 1413444147}
+  m_Father: {fileID: 974174849}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &479637548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 479637546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.42745098, g: 0.7383352, b: 0.78431374, a: 0.5803922}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  m_Type: 1
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &479637549
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 479637546}
+  m_CullTransparentMesh: 1
 --- !u!1 &499091999
 GameObject:
   m_ObjectHideFlags: 0
@@ -725,7 +808,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3db52f0fffd0a4e6e81c30b273904807, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GuardianNode.GuardianSDK
-  apiEndpoint: http://localhost:8888
+  apiEndpoint: https://astride-graded-paralegal.ngrok-free.dev
   apiKey: guardiannode-dev-secret
   gameId: unity-game-01
 --- !u!4 &516500447
@@ -753,7 +836,6 @@ GameObject:
   m_Component:
   - component: {fileID: 546869135}
   - component: {fileID: 546869134}
-  - component: {fileID: 546869136}
   m_Layer: 0
   m_Name: ChatManager
   m_TagString: Untagged
@@ -776,6 +858,7 @@ MonoBehaviour:
   inputField: {fileID: 440630679}
   chatContent: {fileID: 499092000}
   textPrefab: {fileID: 3649415775342181878, guid: 584fbfad8f3d541638be61bcf4e06ab4, type: 3}
+  scrollRect: {fileID: 1413444148}
   network: {fileID: 339635583}
 --- !u!4 &546869135
 Transform:
@@ -792,20 +875,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &546869136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 546869133}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c882fb8944da443cb1f6a9a39325a7e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GuardianNetwork
-  roomId: sala-demo
-  playerId: Unity_Player
 --- !u!1 &692124576
 GameObject:
   m_ObjectHideFlags: 0
@@ -1253,8 +1322,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 440630676}
-  - {fileID: 1413444147}
+  - {fileID: 479637547}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1667,19 +1735,19 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1413444146}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 585}
-  m_LocalScale: {x: 3, y: 3, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -1157.9998}
+  m_LocalScale: {x: 0.29999995, y: 0.29999998, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 894218835}
   - {fileID: 1182881922}
   - {fileID: 303838288}
-  m_Father: {fileID: 974174849}
+  m_Father: {fileID: 479637547}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 30, y: 22}
+  m_AnchoredPosition: {x: 3, y: 2.1999989}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1413444148
@@ -1951,7 +2019,7 @@ SceneRoots:
   - {fileID: 993982391}
   - {fileID: 974174849}
   - {fileID: 516500447}
-  - {fileID: 546869135}
   - {fileID: 253709516}
   - {fileID: 692124580}
   - {fileID: 339635584}
+  - {fileID: 546869135}
